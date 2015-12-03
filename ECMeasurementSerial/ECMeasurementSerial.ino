@@ -81,7 +81,7 @@ void setup()
   EEPROM_float_write(addressY1, 1245);
   EEPROM_float_write(addressY2, 5282);
   EEPROM_float_write(addressY3, 17255);
-  Y1 = EEPROM_float_read(addressY0);
+  Y0 = EEPROM_float_read(addressY0);
   Y1 = EEPROM_float_read(addressY1);
   Y2 = EEPROM_float_read(addressY2);
   Y3 = EEPROM_float_read(addressY3);
@@ -89,12 +89,12 @@ void setup()
   Serial.println("_________________________");
   }
   Serial.println("Calibrate commands:");
-  Serial.println("EC :");
+  Serial.println("E.C. :");
   Serial.println("      Cal. 0,00 uS ---- 0");
   Serial.println("      Cal. 2,00 uS ---- 1");
   Serial.println("      Cal. 12,88 uS --- 2");
   Serial.println("      Cal. 80,00 uS --- 3");
-  Serial.println("      Reset EC -------- 5");
+  Serial.println("      Reset E.C. ------ 5");
   Serial.println("  ");
   delay(250);
 
@@ -140,82 +140,19 @@ void loop()
     Serial.println("temp sensor connection error!");
     Search_sensors();
   }
-
-  if (cal_Y0 == 1) // thin calibration 0.00 uS
-  {
-    if (EC > X0)
-    {
-    Serial.println("cal. 0.00 ...");  
-    Y0++;
-    }
-    else
-    {
-    cal_Y0 = 0;
-    EEPROM_float_write(addressY0, Y0);
-    Serial.println("cal. 0.00 uS complete");
-    }
-  }
-  if (cal_Y1 == 1) // thin calibration 2.00 uS
-  {
-    if (EC > X1)
-    {
-    Serial.println("cal. 2.00 ...");  
-    Y1++;
-    }
-    else
-    {
-    cal_Y1 = 0;
-    EEPROM_float_write(addressY1, Y1);
-    Serial.println("cal. 2.00 uS complete");
-    }
-  }
-
-  if (cal_Y2 == 1) // thin calibration 12.88 uS
-  {
-    if (EC > X2)
-    {
-    Serial.println("cal. 12.88 ...");      
-    Y2++;
-    }
-    else
-    {
-    cal_Y2 = 0;
-    EEPROM_float_write(addressY2, Y2);
-    Serial.println("cal. 12.88 uS complete");
-    }
-  }
-
-    if (cal_Y3 == 1) // thin calibration 80.00 uS
-  {
-    if (EC > X3)
-    {
-    Serial.println("cal. 80.00 ...");   
-    Y3++;
-    }
-    else
-    {
-    cal_Y3 = 0;
-    EEPROM_float_write(addressY3, Y3);
-    Serial.println("cal. 80.00 uS complete");
-    }
-  }
   
-  EC = ECread();
+  pulseCal = ECread();
+  EC = ECcal();
   
   // Prints measurements on Serial Monitor
   Serial.println("  ");
   Serial.print("  t ");
   Serial.print(temp, 1);
   Serial.print(F(" *C"));
-  Serial.print("    EC ");
-  if (cal_Y0 == 0 && cal_Y1 == 0 && cal_Y2 == 0 && cal_Y3 == 0)
-  {
+  Serial.print("    E.C. ");
+
   Serial.println(EC); // uS/cm
-  }
-  else
-  {
-    Serial.println(" ... "); // process to callibration
-  }
+
   //Serial.print("pulses/sec = ");
   //Serial.println(pulseCal);
   //Serial.print("C = ");
@@ -233,7 +170,7 @@ void loop()
 
 /*-----------------------------------End loop---------------------------------------*/
 
-float ECread() // calculate EC
+long ECread()
 {
     total_EC = total_EC - readings_EC[index_EC];
     readings_EC[index_EC] = pulseCount;
@@ -245,18 +182,18 @@ float ECread() // calculate EC
     index_EC = 0;    
     pulseCount = total_EC / numReadings_EC;
     pulseCal = pulseCount;
+}
 
-     //graph function of read EC
-
-
-     if (pulseCount>Y0 && pulseCount<Y1 )
+float ECcal()  //graph function of read EC
+{
+     if (pulseCal>Y0 && pulseCal<Y1 )
       {
         A = (Y1 - Y0) / (X1 - X0);
         B = Y0 - (A * X0);
         C = (pulseCal - B) / A;
       }
       
-      if (pulseCal > Y1 && pulseCount<Y2 )
+      if (pulseCal > Y1 && pulseCal<Y2 )
       {
         A = (Y2-Y1) / (X2 - X1);
         B = Y1 - (A * X1);
@@ -324,7 +261,7 @@ void Search_sensors() // search ds18b20 temperature sensor
 
 void cal_sensors()
 {
-  Serial.println(">");
+  Serial.println(" ");
   
  if (incomingByte == 53) // press key "5"
  {
@@ -338,28 +275,57 @@ void cal_sensors()
   Y2 = EEPROM_float_read(addressY2);
   Y3 = EEPROM_float_read(addressY3);
  }
- else if (incomingByte == 48) // press key "1"
+ 
+ else if (incomingByte == 48) // press key "0"
  {
   Serial.print("Cal. 0,00 uS ...");  
   Y0 = pulseCal / (1 + 0.019 * (temp-25.00));
-  cal_Y0 = 1;
+  EC = ECcal();
+  while (EC > 0.005)
+    {
+    Y0++;
+    EC = ECcal();
+    }
+  EEPROM_float_write(addressY0, Y0);
  }
+ 
  else if (incomingByte == 49) // press key "1"
  {
   Serial.print("Cal. 2,00 uS ...");  
   Y1 = pulseCal / (1 + 0.019 * (temp-25.00));
-  cal_Y1 = 1;
+  EC = ECcal();
+  while (EC > X1)
+    {
+    Y1++;
+    EC = ECcal();
+    }
+  EEPROM_float_write(addressY1, Y1);
  }
+ 
  else if (incomingByte == 50) // press key "2"
  {
   Serial.print("Cal. 12,88 uS ...");  
   Y2 = pulseCal / (1 + 0.019 * (temp-25.00));
-  cal_Y2 = 1;
+  EC = ECcal();
+  while (EC > X2)
+    {      
+    Y2++;
+    EC = ECcal();
+    }
+  EEPROM_float_write(addressY2, Y2);
  }
+ 
   else if (incomingByte == 51) // press key "3"
  {
   Serial.print("Cal. 80,00 uS ..."); 
   Y3 = pulseCal / (1 + 0.019 * (temp-25.00));
-  cal_Y3 = 1;
+  EC = ECcal(); 
+  while (EC > X3)
+    { 
+    Y3++;
+    EC = ECcal();
+    }
+  EEPROM_float_write(addressY3, Y3);
  }
+   Serial.println(" complete");
 }
