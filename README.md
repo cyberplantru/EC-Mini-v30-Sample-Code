@@ -19,7 +19,7 @@ The E.C. Reader based on the precision timer NE555DR. The Conductivity circuit p
 Connect the module to D2/D3 pins Arduino Uno via Grove cable.
 Connect the EC electrode. For temperature compensation connect the ds18b20 sensor and solder a resistor 4k7. Measurements without temperature compensation may lead to less accuracy. Provide supply least 200 mA to measure the full range of conductivity.
 
-![pH to I2C](http://image.cyber-plant.com/var/resizes/pHtoI2C_pH_measurement.jpg?m=1447442262)
+![EC Reader](http://image.cyber-plant.com/var/albums/ECReaderConnect.jpg?m=1449111914)
 
 
 
