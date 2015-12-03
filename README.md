@@ -26,10 +26,10 @@ Connect the EC electrode. For temperature compensation connect the ds18b20 senso
 See the sample code *ECMeasurementSerial.ino*
 
 The sample code uses the sensor calibration feature with one touch.
-![pH to I2C](http://image.cyber-plant.com/var/resizes/PhSerial.png?m=1447486499)
+![EC Reader](http://image.cyber-plant.com/var/resizes/PhSerial.png?m=1447486499)
 
 ## Isolated sensor
 If you need to isolate the EC Reader can use I2Ciso. When reading the pH and Conductivity together, recommended to isolate the pH circuit and leave the E.C. unisolated.
 
-![pH to I2C](http://image.cyber-plant.com/var/resizes/pHtoI2C_iso.jpg?m=1449086266)
+![EC Reader](http://image.cyber-plant.com/var/albums/ECReaderIso.jpg?m=1449112044)
 
