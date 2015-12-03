@@ -16,6 +16,8 @@
 #define X2 12.88
 #define X3 80.0
 
+#define alphaLTC 0.02 // The linear temperature coefficient
+
 int addressCheckMemory = 0;
 int addressY0 = addressCheckMemory+sizeof(float);
 int addressY1 = addressY0+sizeof(float);
@@ -52,6 +54,11 @@ int index_EC = 0;                  // the index of the current reading
 float total_EC = 0;                  // the running total
 float average_EC = 0;                // the average
 
+const int numReadingstemp = 10;
+float readingstemp[numReadingstemp];      // the readings from the analog input
+int indextemp = 0;                  // the index of the current reading
+float totaltemp = 0;                  // the running total
+float averagetemp = 0;                // the average
 int sequence = 0;
 
 const byte ONEWIRE_PIN = 3; // temperature sensor ds18b20
@@ -101,6 +108,8 @@ void setup()
 for (int thisReading_EC = 0; thisReading_EC < numReadings_EC; thisReading_EC++)
 readings_EC[thisReading_EC] = 0;
 
+  for (int thisReadingtemp = 0; thisReadingtemp < numReadingstemp; thisReadingtemp++)
+  readingstemp[thisReadingtemp] = 0;
 }
 
 
@@ -125,15 +134,8 @@ void loop()
   {
      detachInterrupt(0);
      
+temp = temp_read();
 
- // Requests sensor for measurement
-  sensors.request(address);
-  
-  // Waiting (block the program) for measurement reesults
-  while(!sensors.available());
-  
-  // Reading of sensors  
-  temp = sensors.readTemperature(address);
   if (temp > 200 || temp < -20 )
   { 
     temp = tempDefault;
@@ -147,14 +149,14 @@ void loop()
   // Prints measurements on Serial Monitor
   Serial.println("  ");
   Serial.print("  t ");
-  Serial.print(temp, 1);
+  Serial.print(temp);
   Serial.print(F(" *C"));
   Serial.print("    E.C. ");
   Serial.println(EC); // uS/cm
   Serial.print("pulses/sec = ");
   Serial.println(pulseCal);
-  //Serial.print("C = ");
-  //Serial.println(C); // Conductivity without temperature compensation
+  Serial.print("C = ");
+  Serial.println(C); // Conductivity without temperature compensation
   }
 }
 
@@ -167,6 +169,25 @@ void loop()
 }
 
 /*-----------------------------------End loop---------------------------------------*/
+float temp_read() // calculate pH
+{
+      sensors.request(address);
+  
+  // Waiting (block the program) for measurement reesults
+  while(!sensors.available());
+  
+    totaltemp= totaltemp - readingstemp[indextemp];
+    readingstemp[indextemp] = sensors.readTemperature(address);
+    totaltemp= totaltemp + readingstemp[indextemp];
+    indextemp = indextemp + 1;
+    // if we're at the end of the array...
+    if (indextemp >= numReadingstemp)              
+    // ...wrap around to the beginning: 
+    indextemp = 0;    
+    averagetemp = totaltemp / numReadingstemp;
+    temp = averagetemp;
+}
+
 
 long ECread()
 {
@@ -204,7 +225,7 @@ float ECcal()  //graph function of read EC
         C = (pulseCal - B) / A;
       }
       
-    EC = (C / (1 + 0.019 * (temp-25.00))); // At higher conductivity, about 6 uS/cm at 25°C, the neutral salt correction behaves like the linear temperature correction model, albeit a correction in which the slope is temperature dependent. At 5°C the coefficient is 0.019, and at 90°C the coefficient is 0.025.
+    EC = (C / (1 + alphaLTC * (temp-25.00)));
 }
 
 void EEPROM_float_write(int addr, float val) // write to EEPROM
@@ -278,7 +299,7 @@ void cal_sensors()
  else if (incomingByte == 48) // press key "0"
  {
   Serial.print("Cal. 0,00 uS ...");  
-  Y0 = pulseCal / (1 + 0.019 * (temp-25.00));
+  Y0 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECcal();
   while (EC > 0.005)
     {
@@ -292,7 +313,7 @@ void cal_sensors()
  else if (incomingByte == 49) // press key "1"
  {
   Serial.print("Cal. 2,00 uS ...");  
-  Y1 = pulseCal / (1 + 0.019 * (temp-25.00));
+  Y1 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECcal();
   while (EC > X1)
     {
@@ -306,7 +327,7 @@ void cal_sensors()
  else if (incomingByte == 50) // press key "2"
  {
   Serial.print("Cal. 12,88 uS ...");  
-  Y2 = pulseCal / (1 + 0.019 * (temp-25.00));
+  Y2 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECcal();
   while (EC > X2)
     {      
@@ -320,7 +341,7 @@ void cal_sensors()
   else if (incomingByte == 51) // press key "3"
  {
   Serial.print("Cal. 80,00 uS ..."); 
-  Y3 = pulseCal / (1 + 0.019 * (temp-25.00));
+  Y3 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECcal(); 
   while (EC > X3)
     { 
