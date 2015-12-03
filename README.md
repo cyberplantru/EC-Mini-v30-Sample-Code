@@ -15,8 +15,10 @@ The E.C. Reader based on the precision timer NE555DR. The Conductivity circuit p
 
 
 ## EC measurement
+For high accuracy of conductivity measurements use the temperature compensation.
+Connect the ds18b20 temperature sensor and solder a pull-up resistor 4k7. 
 
-For temperature compensation connect the ds18b20 sensor and solder a resistor 4k7. Measurements without temperature compensation may lead to less accuracy. For pull-up Interrupts solder a second 4k7 resistor or enable the internal pull-up resistor in microcontroller (activated as default in sample code). Provide supply least 200 mA to measure the full range of conductivity. Connect the module to D2/D3 pins Arduino Uno via Grove cable. Connect the EC electrode. 
+For pull-up Interrupts solder a second 4k7 resistor. You can enable the internal pull-up resistor in microcontroller,  but the result will be less stable. Provide supply least 200 mA to measure the full range of conductivity. Connect the module to D2/D3 pins Arduino Uno via Grove cable. Connect the EC electrode. 
 ![EC Reader](http://image.cyber-plant.com/var/resizes/ECReaderConnect.jpg?m=1449111915)
 See the sample code *ECMeasurementSerial.ino*
 

@@ -70,7 +70,7 @@ void setup()
 {
   Serial.begin(9600);
   Time=millis();
-  pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
+  //pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
   sensors.begin();
   Search_sensors();
 
@@ -150,11 +150,9 @@ void loop()
   Serial.print(temp, 1);
   Serial.print(F(" *C"));
   Serial.print("    E.C. ");
-
   Serial.println(EC); // uS/cm
-
-  //Serial.print("pulses/sec = ");
-  //Serial.println(pulseCal);
+  Serial.print("pulses/sec = ");
+  Serial.println(pulseCal);
   //Serial.print("C = ");
   //Serial.println(C); // Conductivity without temperature compensation
   }
@@ -274,6 +272,7 @@ void cal_sensors()
   Y1 = EEPROM_float_read(addressY1);
   Y2 = EEPROM_float_read(addressY2);
   Y3 = EEPROM_float_read(addressY3);
+  Serial.println(" complete");
  }
  
  else if (incomingByte == 48) // press key "0"
@@ -287,6 +286,7 @@ void cal_sensors()
     EC = ECcal();
     }
   EEPROM_float_write(addressY0, Y0);
+  Serial.println(" complete");
  }
  
  else if (incomingByte == 49) // press key "1"
@@ -300,6 +300,7 @@ void cal_sensors()
     EC = ECcal();
     }
   EEPROM_float_write(addressY1, Y1);
+  Serial.println(" complete");
  }
  
  else if (incomingByte == 50) // press key "2"
@@ -313,6 +314,7 @@ void cal_sensors()
     EC = ECcal();
     }
   EEPROM_float_write(addressY2, Y2);
+  Serial.println(" complete");
  }
  
   else if (incomingByte == 51) // press key "3"
@@ -326,6 +328,6 @@ void cal_sensors()
     EC = ECcal();
     }
   EEPROM_float_write(addressY3, Y3);
+  Serial.println(" complete");
  }
-   Serial.println(" complete");
 }
