@@ -17,14 +17,19 @@ The E.C. Reader based on the precision timer NE555DR. The Conductivity circuit p
 ## EC measurement
 
 For temperature compensation connect the ds18b20 sensor and solder a resistor 4k7. Measurements without temperature compensation may lead to less accuracy. For pull-up Interrupts solder a second 4k7 resistor or enable the internal pull-up resistor in microcontroller (activated as default in sample code). Provide supply least 200 mA to measure the full range of conductivity. Connect the module to D2/D3 pins Arduino Uno via Grove cable. Connect the EC electrode. 
-
+![EC Reader](http://image.cyber-plant.com/var/resizes/ECReaderConnect.jpg?m=1449111915)
 See the sample code *ECMeasurementSerial.ino*
 
 The sample code uses the sensor calibration feature with one touch.
 ![EC Reader](http://image.cyber-plant.com/var/resizes/ECSerial.jpg?m=1449125597)
 
 ## Isolated sensor
-If you need to isolate the EC Reader can use I2Ciso. When reading the pH and Conductivity together, recommended to isolate the pH circuit and leave the E.C. unisolated.
+If you need to isolate the EC Reader can use the [I2Ciso](https://github.com/cyberplantru/I2C-iso). When reading the pH and Conductivity together, recommended to isolate the pH circuit and leave the E.C. unisolated.
 
 ![EC Reader](http://image.cyber-plant.com/var/albums/ECReaderIso.jpg?m=1449112044)
 
+
+----------
+
+
+[link to CyberPlant](http://www.cyberplant.info).
