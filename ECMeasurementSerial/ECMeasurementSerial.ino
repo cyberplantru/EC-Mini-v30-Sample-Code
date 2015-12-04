@@ -148,14 +148,14 @@ temp = temp_read();
   
   // Prints measurements on Serial Monitor
   Serial.println("  ");
-  Serial.print("  t ");
+  Serial.print("t ");
   Serial.print(temp);
   Serial.print(F(" *C"));
   Serial.print("    E.C. ");
-  Serial.println(EC); // uS/cm
-  Serial.print("pulses/sec = ");
-  Serial.println(pulseCal);
-  Serial.print("C = ");
+  Serial.print(EC); // uS/cm
+  Serial.print("    pulses/sec = ");
+  Serial.print(pulseCal);
+  Serial.print("    C = ");
   Serial.println(C); // Conductivity without temperature compensation
   }
 }
