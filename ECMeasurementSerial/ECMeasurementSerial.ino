@@ -16,7 +16,7 @@
 #define X2 12.88
 #define X3 80.0
 
-#define alphaLTC 0.02 // The linear temperature coefficient
+#define alphaLTC 0.022 // The linear temperature coefficient
 
 int addressCheckMemory = 0;
 int addressY0 = addressCheckMemory+sizeof(float);
@@ -37,6 +37,8 @@ float C;
 
 long pulseCount = 0;  //a pulse counter variable
 long pulseCal;
+byte ECcal = 0;
+
 unsigned long pulseTime,lastTime, duration, totalDuration;
 
 
@@ -46,22 +48,11 @@ unsigned long Time;
 
 float EC;
 float temp;
-float tempDefault = 25.0;
+float tempManual = 25.0;
 
-const int numReadings_EC = 10;
-float readings_EC[numReadings_EC];      // the readings from the analog input
-int index_EC = 0;                  // the index of the current reading
-float total_EC = 0;                  // the running total
-float average_EC = 0;                // the average
-
-const int numReadingstemp = 10;
-float readingstemp[numReadingstemp];      // the readings from the analog input
-int indextemp = 0;                  // the index of the current reading
-float totaltemp = 0;                  // the running total
-float averagetemp = 0;                // the average
 int sequence = 0;
 
-const byte ONEWIRE_PIN = 3; // temperature sensor ds18b20
+const byte ONEWIRE_PIN = 3; // temperature sensor ds18b20, pin D3
 byte address[8];
 OneWire onewire(ONEWIRE_PIN);
 DS18B20 sensors(&onewire);
@@ -77,24 +68,10 @@ void setup()
 {
   Serial.begin(9600);
   Time=millis();
-  //pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
+  pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
   sensors.begin();
   Search_sensors();
 
-  if (EEPROM_float_read(addressCheckMemory) != CheckMemory)
-  {
-  EEPROM_float_write(addressCheckMemory, CheckMemory);
-  EEPROM_float_write(addressY0, 240);
-  EEPROM_float_write(addressY1, 1245);
-  EEPROM_float_write(addressY2, 5282);
-  EEPROM_float_write(addressY3, 17255);
-  Y0 = EEPROM_float_read(addressY0);
-  Y1 = EEPROM_float_read(addressY1);
-  Y2 = EEPROM_float_read(addressY2);
-  Y3 = EEPROM_float_read(addressY3);
-  Serial.println("Primary auto setting is complete. Device is ready");
-  Serial.println("_________________________");
-  }
   Serial.println("Calibrate commands:");
   Serial.println("E.C. :");
   Serial.println("      Cal. 0,00 uS ---- 0");
@@ -105,11 +82,6 @@ void setup()
   Serial.println("  ");
   delay(250);
 
-for (int thisReading_EC = 0; thisReading_EC < numReadings_EC; thisReading_EC++)
-readings_EC[thisReading_EC] = 0;
-
-  for (int thisReadingtemp = 0; thisReadingtemp < numReadingstemp; thisReadingtemp++)
-  readingstemp[thisReadingtemp] = 0;
 }
 
 
@@ -132,19 +104,18 @@ void loop()
   
    if (sequence==1)
   {
-     detachInterrupt(0);
-     
-temp = temp_read();
-
-  if (temp > 200 || temp < -20 )
+    detachInterrupt(0);
+    pulseCal = pulseCount;
+    temp_read();
+    if (temp > 200 || temp < -20 )
   { 
-    temp = tempDefault;
+    temp = tempManual;
     Serial.println("temp sensor connection error!");
     Search_sensors();
   }
-  
-  pulseCal = ECread();
-  EC = ECcal();
+
+
+  ECread();
   
   // Prints measurements on Serial Monitor
   Serial.println("  ");
@@ -176,34 +147,12 @@ float temp_read() // calculate pH
   // Waiting (block the program) for measurement reesults
   while(!sensors.available());
   
-    totaltemp= totaltemp - readingstemp[indextemp];
-    readingstemp[indextemp] = sensors.readTemperature(address);
-    totaltemp= totaltemp + readingstemp[indextemp];
-    indextemp = indextemp + 1;
-    // if we're at the end of the array...
-    if (indextemp >= numReadingstemp)              
-    // ...wrap around to the beginning: 
-    indextemp = 0;    
-    averagetemp = totaltemp / numReadingstemp;
-    temp = averagetemp;
+    temp = sensors.readTemperature(address);
+    return temp;
 }
 
 
-long ECread()
-{
-    total_EC = total_EC - readings_EC[index_EC];
-    readings_EC[index_EC] = pulseCount;
-    total_EC = total_EC + readings_EC[index_EC];
-    index_EC = index_EC + 1;
-    // if we're at the end of the array...
-    if (index_EC >= numReadings_EC)              
-    // ...wrap around to the beginning: 
-    index_EC = 0;    
-    pulseCount = total_EC / numReadings_EC;
-    pulseCal = pulseCount;
-}
-
-float ECcal()  //graph function of read EC
+float ECread()  //graph function of read EC
 {
      if (pulseCal>Y0 && pulseCal<Y1 )
       {
@@ -226,6 +175,7 @@ float ECcal()  //graph function of read EC
       }
       
     EC = (C / (1 + alphaLTC * (temp-25.00)));
+    return EC;
 }
 
 void EEPROM_float_write(int addr, float val) // write to EEPROM
@@ -284,6 +234,78 @@ void cal_sensors()
   
  if (incomingByte == 53) // press key "5"
  {
+  Reset_EC();
+ }
+  else if (incomingByte == 48) // press key "0"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 0,00 uS ...");  
+  Y0 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  EC = ECread();
+  while (EC > 0.01)
+    {
+    Y0++;
+    EC = ECread();
+    }
+  EEPROM_float_write(addressY0, Y0);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+ 
+ else if (incomingByte == 49) // press key "1"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 2,00 uS ...");  
+  Y1 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  EC = ECread();
+  while (EC > X1)
+    {
+    Y1++;
+    EC = ECread();
+    }
+  EEPROM_float_write(addressY1, Y1);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+ 
+ else if (incomingByte == 50) // press key "2"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 12,88 uS ...");  
+  Y2 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  EC = ECread();
+  while (EC > X2)
+    {      
+    Y2++;
+    EC = ECread();
+    }
+  EEPROM_float_write(addressY2, Y2);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+ 
+  else if (incomingByte == 51) // press key "3"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 80,00 uS ..."); 
+  Y3 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  EC = ECread(); 
+  while (EC > X3)
+    { 
+    Y3++;
+    EC = ECread();
+    }
+  EEPROM_float_write(addressY3, Y3);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+
+}
+
+
+
+void Reset_EC()
+{
   Serial.print("Reset EC ...");
   EEPROM_float_write(addressY0, 240);
   EEPROM_float_write(addressY1, 1245);
@@ -294,61 +316,4 @@ void cal_sensors()
   Y2 = EEPROM_float_read(addressY2);
   Y3 = EEPROM_float_read(addressY3);
   Serial.println(" complete");
- }
- 
- else if (incomingByte == 48) // press key "0"
- {
-  Serial.print("Cal. 0,00 uS ...");  
-  Y0 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECcal();
-  while (EC > 0.005)
-    {
-    Y0++;
-    EC = ECcal();
-    }
-  EEPROM_float_write(addressY0, Y0);
-  Serial.println(" complete");
- }
- 
- else if (incomingByte == 49) // press key "1"
- {
-  Serial.print("Cal. 2,00 uS ...");  
-  Y1 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECcal();
-  while (EC > X1)
-    {
-    Y1++;
-    EC = ECcal();
-    }
-  EEPROM_float_write(addressY1, Y1);
-  Serial.println(" complete");
- }
- 
- else if (incomingByte == 50) // press key "2"
- {
-  Serial.print("Cal. 12,88 uS ...");  
-  Y2 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECcal();
-  while (EC > X2)
-    {      
-    Y2++;
-    EC = ECcal();
-    }
-  EEPROM_float_write(addressY2, Y2);
-  Serial.println(" complete");
- }
- 
-  else if (incomingByte == 51) // press key "3"
- {
-  Serial.print("Cal. 80,00 uS ..."); 
-  Y3 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECcal(); 
-  while (EC > X3)
-    { 
-    Y3++;
-    EC = ECcal();
-    }
-  EEPROM_float_write(addressY3, Y3);
-  Serial.println(" complete");
- }
 }
