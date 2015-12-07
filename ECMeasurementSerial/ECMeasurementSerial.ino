@@ -240,7 +240,7 @@ void cal_sensors()
  {
   ECcal = 1;
   Serial.print("Cal. 0,00 uS ...");  
-  Y0 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  Y0 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECread();
   while (EC > 0.01)
     {
@@ -256,7 +256,7 @@ void cal_sensors()
  {
   ECcal = 1;
   Serial.print("Cal. 2,00 uS ...");  
-  Y1 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  Y1 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECread();
   while (EC > X1)
     {
@@ -272,7 +272,7 @@ void cal_sensors()
  {
   ECcal = 1;
   Serial.print("Cal. 12,88 uS ...");  
-  Y2 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  Y2 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECread();
   while (EC > X2)
     {      
@@ -288,7 +288,7 @@ void cal_sensors()
  {
   ECcal = 1;
   Serial.print("Cal. 80,00 uS ..."); 
-  Y3 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  Y3 = pulseCal / (1 + alphaLTC * (temp-25.00));
   EC = ECread(); 
   while (EC > X3)
     { 
