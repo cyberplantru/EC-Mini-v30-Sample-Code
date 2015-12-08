@@ -2,12 +2,12 @@
   Example code for the EC Reader v1.0
   
   http://www.cyberplant.info
-  by CyberPlant LLC, 03 December 2015
+  by CyberPlant LLC
   This example code is in the public domain.
+  upd. 08 December 2015
 
 */
- 
-#include <EEPROM.h>
+#include <EEPROMex.h>
 #include <OneWire.h>
 #include <DS18B20.h>
 
@@ -18,18 +18,18 @@
 
 #define alphaLTC 0.022 // The linear temperature coefficient
 
-int addressCheckMemory = 0;
-int addressY0 = addressCheckMemory+sizeof(float);
-int addressY1 = addressY0+sizeof(float);
-int addressY2 = addressY1+sizeof(float);
-int addressY3 = addressY2+sizeof(float);
+void readAndWriteLong();
 
-const float CheckMemory = 3.14159;
 
-long Y0 = EEPROM_float_read(addressY0);
-long Y1 = EEPROM_float_read(addressY1);
-long Y2 = EEPROM_float_read(addressY2);
-long Y3 = EEPROM_float_read(addressY3);
+int addressY0 = 0;
+int addressY1 = addressY0+sizeof(long);
+int addressY2 = addressY1+sizeof(long);
+int addressY3 = addressY2+sizeof(long);
+
+long Y0 = EEPROM.readLong(addressY0);
+long Y1 = EEPROM.readLong(addressY1);
+long Y2 = EEPROM.readLong(addressY2);
+long Y3 = EEPROM.readLong(addressY3);
 
 float A;
 float B;
@@ -82,6 +82,168 @@ void setup()
   Serial.println("  ");
   delay(250);
 
+}
+
+float temp_read() // calculate pH
+{
+      sensors.request(address);
+  
+  // Waiting (block the program) for measurement reesults
+  while(!sensors.available());
+  
+    temp = sensors.readTemperature(address);
+    return temp;
+}
+
+
+float ECread()  //graph function of read EC
+{
+     if (pulseCal>Y0 && pulseCal<Y1 )
+      {
+        A = (Y1 - Y0) / (X1 - X0);
+        B = Y0 - (A * X0);
+        C = (pulseCal - B) / A;
+      }
+      
+      if (pulseCal > Y1 && pulseCal<Y2 )
+      {
+        A = (Y2-Y1) / (X2 - X1);
+        B = Y1 - (A * X1);
+        C = (pulseCal - B) / A;
+      }
+      if (pulseCal > Y2)
+      {
+        A = (Y3-Y2) / (X3 - X2);
+        B = Y2 - (A * X2);
+        C = (pulseCal - B) / A;
+      }
+      
+    EC = (C / (1 + alphaLTC * (temp-25.00)));
+    return EC;
+}
+
+void onPulse() // EC pulse counter
+{
+  pulseCount++;
+}
+
+void Search_sensors() // search ds18b20 temperature sensor
+{
+  address[8];
+  
+  onewire.reset_search();
+  while(onewire.search(address))
+  {
+    if (address[0] != 0x28)
+      continue;
+      
+    if (OneWire::crc8(address, 7) != address[7])
+    {
+      Serial.println(F("temp sensor connection error!"));
+      temp = 25.0;
+      break;
+    }
+   /*
+    for (byte i=0; i<8; i++)
+    {
+      Serial.print(F("0x"));
+      Serial.print(address[i], HEX);
+      
+      if (i < 7)
+        Serial.print(F(", "));
+    }
+    
+    */
+  }
+
+}
+
+void cal_sensors()
+{
+  Serial.println(" ");
+  
+ if (incomingByte == 53) // press key "5"
+ {
+  Reset_EC();
+ }
+  else if (incomingByte == 48) // press key "0"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 0,00 uS ...");  
+  Y0 = pulseCount / (1 + alphaLTC * (temp-25.00));
+  EC = ECread();
+  while (EC > 0.01)
+    {
+    Y0++;
+    EC = ECread();
+    }
+  EEPROM.writeLong(addressY0, Y0);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+ 
+ else if (incomingByte == 49) // press key "1"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 2,00 uS ...");  
+  Y1 = pulseCal / (1 + alphaLTC * (temp-25.00));
+  EC = ECread();
+  while (EC > X1)
+    {
+    Y1++;
+    EC = ECread();
+    }
+  EEPROM.writeLong(addressY1, Y1);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+ 
+ else if (incomingByte == 50) // press key "2"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 12,88 uS ...");  
+  Y2 = pulseCal / (1 + alphaLTC * (temp-25.00));
+  EC = ECread();
+  while (EC > X2)
+    {      
+    Y2++;
+    EC = ECread();
+    }
+  EEPROM.writeLong(addressY2, Y2);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+ 
+  else if (incomingByte == 51) // press key "3"
+ {
+  ECcal = 1;
+  Serial.print("Cal. 80,00 uS ..."); 
+  Y3 = pulseCal / (1 + alphaLTC * (temp-25.00));
+  EC = ECread(); 
+  while (EC > X3)
+    { 
+    Y3++;
+    EC = ECread();
+    }
+  EEPROM.writeLong(addressY3, Y3);
+  Serial.println(" complete");
+  ECcal = 0;
+ }
+
+}
+
+void Reset_EC()
+{
+  Serial.print("Reset EC ...");
+  EEPROM.writeLong(addressY0, 240);
+  EEPROM.writeLong(addressY1, 1245);
+  EEPROM.writeLong(addressY2, 5282);
+  EEPROM.writeLong(addressY3, 17255);
+  Y0 = EEPROM.readLong(addressY0);
+  Y1 = EEPROM.readLong(addressY1);
+  Y2 = EEPROM.readLong(addressY2);
+  Y3 = EEPROM.readLong(addressY3);
+  Serial.println(" complete");
 }
 
 
@@ -140,180 +302,4 @@ void loop()
 }
 
 /*-----------------------------------End loop---------------------------------------*/
-float temp_read() // calculate pH
-{
-      sensors.request(address);
-  
-  // Waiting (block the program) for measurement reesults
-  while(!sensors.available());
-  
-    temp = sensors.readTemperature(address);
-    return temp;
-}
 
-
-float ECread()  //graph function of read EC
-{
-     if (pulseCal>Y0 && pulseCal<Y1 )
-      {
-        A = (Y1 - Y0) / (X1 - X0);
-        B = Y0 - (A * X0);
-        C = (pulseCal - B) / A;
-      }
-      
-      if (pulseCal > Y1 && pulseCal<Y2 )
-      {
-        A = (Y2-Y1) / (X2 - X1);
-        B = Y1 - (A * X1);
-        C = (pulseCal - B) / A;
-      }
-      if (pulseCal > Y2)
-      {
-        A = (Y3-Y2) / (X3 - X2);
-        B = Y2 - (A * X2);
-        C = (pulseCal - B) / A;
-      }
-      
-    EC = (C / (1 + alphaLTC * (temp-25.00)));
-    return EC;
-}
-
-void EEPROM_float_write(int addr, float val) // write to EEPROM
-{  
-  byte *x = (byte *)&val;
-  for(byte i = 0; i < 4; i++) EEPROM.write(i+addr, x[i]);
-}
-
-float EEPROM_float_read(int addr) // read of EEPROM
-{    
-  byte x[4];
-  for(byte i = 0; i < 4; i++) x[i] = EEPROM.read(i+addr);
-  float *y = (float *)&x;
-  return y[0];
-}
-
-void onPulse() // EC pulse counter
-{
-  pulseCount++;
-}
-
-void Search_sensors() // search ds18b20 temperature sensor
-{
-  address[8];
-  
-  onewire.reset_search();
-  while(onewire.search(address))
-  {
-    if (address[0] != 0x28)
-      continue;
-      
-    if (OneWire::crc8(address, 7) != address[7])
-    {
-      Serial.println(F("temp sensor connection error!"));
-      temp = 25.0;
-      break;
-    }
-   /*
-    for (byte i=0; i<8; i++)
-    {
-      Serial.print(F("0x"));
-      Serial.print(address[i], HEX);
-      
-      if (i < 7)
-        Serial.print(F(", "));
-    }
-    
-    */
-  }
-
-}
-
-void cal_sensors()
-{
-  Serial.println(" ");
-  
- if (incomingByte == 53) // press key "5"
- {
-  Reset_EC();
- }
-  else if (incomingByte == 48) // press key "0"
- {
-  ECcal = 1;
-  Serial.print("Cal. 0,00 uS ...");  
-  Y0 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECread();
-  while (EC > 0.01)
-    {
-    Y0++;
-    EC = ECread();
-    }
-  EEPROM_float_write(addressY0, Y0);
-  Serial.println(" complete");
-  ECcal = 0;
- }
- 
- else if (incomingByte == 49) // press key "1"
- {
-  ECcal = 1;
-  Serial.print("Cal. 2,00 uS ...");  
-  Y1 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECread();
-  while (EC > X1)
-    {
-    Y1++;
-    EC = ECread();
-    }
-  EEPROM_float_write(addressY1, Y1);
-  Serial.println(" complete");
-  ECcal = 0;
- }
- 
- else if (incomingByte == 50) // press key "2"
- {
-  ECcal = 1;
-  Serial.print("Cal. 12,88 uS ...");  
-  Y2 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECread();
-  while (EC > X2)
-    {      
-    Y2++;
-    EC = ECread();
-    }
-  EEPROM_float_write(addressY2, Y2);
-  Serial.println(" complete");
-  ECcal = 0;
- }
- 
-  else if (incomingByte == 51) // press key "3"
- {
-  ECcal = 1;
-  Serial.print("Cal. 80,00 uS ..."); 
-  Y3 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECread(); 
-  while (EC > X3)
-    { 
-    Y3++;
-    EC = ECread();
-    }
-  EEPROM_float_write(addressY3, Y3);
-  Serial.println(" complete");
-  ECcal = 0;
- }
-
-}
-
-
-
-void Reset_EC()
-{
-  Serial.print("Reset EC ...");
-  EEPROM_float_write(addressY0, 240);
-  EEPROM_float_write(addressY1, 1245);
-  EEPROM_float_write(addressY2, 5282);
-  EEPROM_float_write(addressY3, 17255);
-  Y0 = EEPROM_float_read(addressY0);
-  Y1 = EEPROM_float_read(addressY1);
-  Y2 = EEPROM_float_read(addressY2);
-  Y3 = EEPROM_float_read(addressY3);
-  Serial.println(" complete");
-}
