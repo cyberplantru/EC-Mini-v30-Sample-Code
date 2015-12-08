@@ -1,13 +1,15 @@
+
+
 /*
   Example code for the EC Reader v1.0
   
-  http://www.cyberplant.info
-  by CyberPlant LLC
+  http://www.cyber-plant.com
+  by CyberPlant LLC, 03 December 2015
   This example code is in the public domain.
   upd. 08 December 2015
 
 */
-#include <EEPROMex.h>
+#include <EEPROM.h>
 #include <OneWire.h>
 #include <DS18B20.h>
 
@@ -18,18 +20,7 @@
 
 #define alphaLTC 0.022 // The linear temperature coefficient
 
-void readAndWriteLong();
 
-
-int addressY0 = 0;
-int addressY1 = addressY0+sizeof(long);
-int addressY2 = addressY1+sizeof(long);
-int addressY3 = addressY2+sizeof(long);
-
-long Y0 = EEPROM.readLong(addressY0);
-long Y1 = EEPROM.readLong(addressY1);
-long Y2 = EEPROM.readLong(addressY2);
-long Y3 = EEPROM.readLong(addressY3);
 
 float A;
 float B;
@@ -59,13 +50,30 @@ DS18B20 sensors(&onewire);
 
 int incomingByte = 0;  
  
-int cal_Y0 = 0;
-int cal_Y1 = 0;
-int cal_Y2 = 0;
-int cal_Y3 = 0;
+long Y0;
+long Y1;
+long Y2;
+long Y3;
+
+ struct MyObject {
+long Y0;
+long Y1;
+long Y2;
+long Y3;
+};
 
 void setup()
 {
+  int eeAddress = 0; 
+
+  MyObject customVar;
+  EEPROM.get(eeAddress, customVar);
+  
+  Y0 = (customVar.Y0);
+  Y1 = (customVar.Y1);
+  Y2 = (customVar.Y2);
+  Y3 = (customVar.Y3);
+  
   Serial.begin(9600);
   Time=millis();
   pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
@@ -96,7 +104,7 @@ float temp_read() // calculate pH
 }
 
 
-float ECread()  //graph function of read EC
+void ECread()  //graph function of read EC
 {
      if (pulseCal>Y0 && pulseCal<Y1 )
       {
@@ -119,7 +127,6 @@ float ECread()  //graph function of read EC
       }
       
     EC = (C / (1 + alphaLTC * (temp-25.00)));
-    return EC;
 }
 
 void onPulse() // EC pulse counter
@@ -170,14 +177,9 @@ void cal_sensors()
  {
   ECcal = 1;
   Serial.print("Cal. 0,00 uS ...");  
-  Y0 = pulseCount / (1 + alphaLTC * (temp-25.00));
-  EC = ECread();
-  while (EC > 0.01)
-    {
-    Y0++;
-    EC = ECread();
-    }
-  EEPROM.writeLong(addressY0, Y0);
+  Y0 = pulseCal;
+  int eeAddress = 0;
+  EEPROM.put(eeAddress, Y0);
   Serial.println(" complete");
   ECcal = 0;
  }
@@ -187,13 +189,14 @@ void cal_sensors()
   ECcal = 1;
   Serial.print("Cal. 2,00 uS ...");  
   Y1 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECread();
+  ECread();
   while (EC > X1)
     {
     Y1++;
-    EC = ECread();
+    ECread();
     }
-  EEPROM.writeLong(addressY1, Y1);
+  int eeAddress = 0 + sizeof(long);
+  EEPROM.put(eeAddress, Y1);
   Serial.println(" complete");
   ECcal = 0;
  }
@@ -203,13 +206,14 @@ void cal_sensors()
   ECcal = 1;
   Serial.print("Cal. 12,88 uS ...");  
   Y2 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECread();
+  ECread();
   while (EC > X2)
     {      
     Y2++;
-    EC = ECread();
+    ECread();
     }
-  EEPROM.writeLong(addressY2, Y2);
+  int eeAddress = 0 + (sizeof(long)*2);
+  EEPROM.put(eeAddress, Y2);
   Serial.println(" complete");
   ECcal = 0;
  }
@@ -219,13 +223,14 @@ void cal_sensors()
   ECcal = 1;
   Serial.print("Cal. 80,00 uS ..."); 
   Y3 = pulseCal / (1 + alphaLTC * (temp-25.00));
-  EC = ECread(); 
+  ECread(); 
   while (EC > X3)
     { 
     Y3++;
-    EC = ECread();
+    ECread();
     }
-  EEPROM.writeLong(addressY3, Y3);
+  int eeAddress = 0 + sizeof(long)*3;
+  EEPROM.put(eeAddress, Y3);
   Serial.println(" complete");
   ECcal = 0;
  }
@@ -234,20 +239,35 @@ void cal_sensors()
 
 void Reset_EC()
 {
+  ECcal = 1;
+  int eeAddress = 0;
+  
   Serial.print("Reset EC ...");
-  EEPROM.writeLong(addressY0, 240);
-  EEPROM.writeLong(addressY1, 1245);
-  EEPROM.writeLong(addressY2, 5282);
-  EEPROM.writeLong(addressY3, 17255);
-  Y0 = EEPROM.readLong(addressY0);
-  Y1 = EEPROM.readLong(addressY1);
-  Y2 = EEPROM.readLong(addressY2);
-  Y3 = EEPROM.readLong(addressY3);
+  
+   MyObject customVar = {
+    230,
+    1245,
+    5282,
+    17255
+  };
+
+  EEPROM.put(eeAddress, customVar);
+
+  EEPROM.get(eeAddress, customVar);
+  
+  Y0 = (customVar.Y0);
+  Y1 = (customVar.Y1);
+  Y2 = (customVar.Y2);
+  Y3 = (customVar.Y3);
   Serial.println(" complete");
+  ECcal = 0;
 }
 
 
 void loop()
+{
+  
+if (ECcal == 0)
 {
   if (millis()-Time>=Interval)
 {  
@@ -298,7 +318,7 @@ void loop()
         incomingByte = Serial.read();
         cal_sensors();
     }
-
+}
 }
 
 /*-----------------------------------End loop---------------------------------------*/
