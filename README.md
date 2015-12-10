@@ -34,4 +34,4 @@ If you need to isolate the EC Reader can use the [I2Ciso](https://github.com/cyb
 ----------
 
 
-[link to CyberPlant](http://www.cyberplant.info).
+[link to CyberPlant](http://www.cyber-plant.com).
