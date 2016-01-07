@@ -6,7 +6,7 @@
   http://www.cyber-plant.com
   by CyberPlant LLC, 03 December 2015
   This example code is in the public domain.
-  upd. 08 December 2015
+  upd. 07 January 2016
 
 */
 #include <EEPROM.h>
@@ -40,7 +40,7 @@ unsigned long Time;
 float EC;
 float temp;
 float tempManual = 25.0;
-
+byte tempMode = 0;
 int sequence = 0;
 
 const byte ONEWIRE_PIN = 3; // temperature sensor ds18b20, pin D3
@@ -88,24 +88,29 @@ void setup()
   Serial.println("      Cal. 80,00 uS --- 3");
   Serial.println("      Reset E.C. ------ 5");
   Serial.println("  ");
-  delay(250);
+  delay(750);
 
 }
 
-float temp_read() // calculate pH
+void temp_read()
 {
-      sensors.request(address);
-  
-  // Waiting (block the program) for measurement reesults
-  while(!sensors.available());
-  
-    temp = sensors.readTemperature(address);
-    return temp;
+  sensors.request(address);
+  while (!sensors.available());
+  temp = sensors.readTemperature(address);
+  if (temp < 0.1){
+  temp = tempManual;
+  Serial.println(F("DS18B20 connection error!"));
+  Search_sensors();
+  }
 }
 
 
 void ECread()  //graph function of read EC
 {
+       if (pulseCal<Y0)
+      {
+        C = 0;
+      }
      if (pulseCal>Y0 && pulseCal<Y1 )
       {
         A = (Y1 - Y0) / (X1 - X0);
@@ -137,34 +142,14 @@ void onPulse() // EC pulse counter
 void Search_sensors() // search ds18b20 temperature sensor
 {
   address[8];
-  
+
   onewire.reset_search();
-  while(onewire.search(address))
+  while (onewire.search(address))
   {
     if (address[0] != 0x28)
       continue;
-      
-    if (OneWire::crc8(address, 7) != address[7])
-    {
-      Serial.println(F("temp sensor connection error!"));
-      temp = 25.0;
-      break;
-    }
-   /*
-    for (byte i=0; i<8; i++)
-    {
-      Serial.print(F("0x"));
-      Serial.print(address[i], HEX);
-      
-      if (i < 7)
-        Serial.print(F(", "));
-    }
-    
-    */
   }
-
 }
-
 void cal_sensors()
 {
   Serial.println(" ");
@@ -288,13 +273,10 @@ if (ECcal == 0)
   {
     detachInterrupt(0);
     pulseCal = pulseCount;
+    if (tempMode==0)
     temp_read();
-    if (temp > 200 || temp < -20 )
-  { 
-    temp = tempManual;
-    Serial.println("temp sensor connection error!");
-    Search_sensors();
-  }
+    else if (tempMode==1)
+    temp = 25.0;
 
 
   ECread();
