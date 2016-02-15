@@ -1,300 +1,198 @@
-
-
 /*
-  Example code for the EC Reader v1.0
-
+  Example code for the E.C. Counter v1.1
   http://www.cyber-plant.com
   by CyberPlant LLC, 03 December 2015
   This example code is in the public domain.
-  upd. 07 January 2016
-
+  upd. 15 February 2016
 */
+#include <SimpleTimer.h>
 #include <EEPROM.h>
 #include <OneWire.h>
-#include <DS18B20.h>
+#include <DallasTemperature.h>
 
-#define X0 0.0
+#define alphaLTC 0.022 // The linear temperature coefficient
+#define ONE_WIRE_BUS 3 // Connect DS18B20 temp sensor to pin D3
+
+#define X0 0.0 //calibration buffers. You can use any other buffers
 #define X1 2.0
 #define X2 12.88
 #define X3 80.0
-
-#define alphaLTC 0.022 // The linear temperature coefficient
-
-
-
-float A;
-float B;
-float C;
-
-long pulseCount = 0;  //a pulse counter variable
-long pulseCal;
-byte ECcal = 0;
-
-unsigned long pulseTime, lastTime, duration, totalDuration;
-
-
-unsigned int Interval = 1000;
-long previousMillis = 0;
-unsigned long Time;
+unsigned int Y0; // calibration value
+unsigned int Y1;
+unsigned int Y2;
+unsigned int Y3;
 
 float EC;
-float temp;
-float tempManual = 25.0;
+float Temp;
+float TempManual = 25.0;
 
-int sequence = 0;
-
-const byte ONEWIRE_PIN = 3; // temperature sensor ds18b20, pin D3
-byte address[8];
-OneWire onewire(ONEWIRE_PIN);
-DS18B20 sensors(&onewire);
-
+volatile bool counting;
+volatile unsigned long events;
+unsigned long total;
 int incomingByte = 0;
 
-long Y0;
-long Y1;
-long Y2;
-long Y3;
-
-struct MyObject {
-  long Y0;
-  long Y1;
-  long Y2;
-  long Y3;
-};
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+SimpleTimer timer;
 
 void setup()
 {
-  int eeAddress = 0;
+  Serial.begin(115200);
+  //pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
+  Serial.println("Calibrate commands:");
+  Serial.println("E.C. :");
+  Serial.println("      Cal. 0,000 uS ---- 0");
+  Serial.println("      Cal. 2,000 uS ---- 1");
+  Serial.println("      Cal. 12,880 uS --- 2");
+  Serial.println("      Cal. 80,000 uS --- 3");
+  Serial.println("      Reset E.C. ------ 5");
+  Serial.println("  ");
+  ReadEE();
+  timer.setInterval(1000L, TotalEvents);
+  attachInterrupt (0, eventISR, FALLING);
+}
 
+struct MyObject {
+  unsigned int Y0;
+  unsigned int Y1;
+  unsigned int Y2;
+  unsigned int Y3;
+};
+
+void ReadEE()
+{
+  int eeAddress = 0;
   MyObject customVar;
   EEPROM.get(eeAddress, customVar);
-
   Y0 = (customVar.Y0);
   Y1 = (customVar.Y1);
   Y2 = (customVar.Y2);
   Y3 = (customVar.Y3);
-
-  Serial.begin(9600);
-  Time = millis();
-  pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
-  sensors.begin();
-  Search_sensors();
-
-  Serial.println("Calibrate commands:");
-  Serial.println("E.C. :");
-  Serial.println("      Cal. 0,00 uS ---- 0");
-  Serial.println("      Cal. 2,00 uS ---- 1");
-  Serial.println("      Cal. 12,88 uS --- 2");
-  Serial.println("      Cal. 80,00 uS --- 3");
-  Serial.println("      Reset E.C. ------ 5");
-  Serial.println("  ");
-  delay(750);
-
 }
 
-void temp_read()
+void SaveSet()
 {
-  sensors.request(address);
-  while (!sensors.available());
-  temp = sensors.readTemperature(address);
-  if (temp < 0.1) {
-    temp = tempManual;
-    Serial.println(F("DS18B20 connection error!"));
-    Search_sensors();
+  int eeAddress = 0;
+  MyObject customVar = {
+    Y0,
+    Y1,
+    Y2,
+    Y3
+  };
+  EEPROM.put(eeAddress, customVar);
+}
+
+void eventISR ()
+{
+  if (counting == true)
+    events++;
+}
+
+void TotalEvents()
+{
+  if (counting == true) {
+    counting = false;
+    total = events;
+    TempRead();
+  }
+  else if (counting == false) {
+    noInterrupts ();
+    events = 0;
+    EIFR = bit (INTF0);
+    counting = true;
+    interrupts ();
   }
 }
 
-
-void ECread()  //graph function of read EC
+void TempRead()
 {
-  if (pulseCal < Y0)
-  {
+  sensors.requestTemperatures();
+  Temp = sensors.getTempCByIndex(0);
+  if (-20 > Temp || Temp > 200) {
+    Temp = TempManual;
+  }
+  ECcalculate();
+}
+
+void ECcalculate()
+{
+  float A;
+  float B;
+  float C;
+
+  if (total < Y0)
     C = 0;
-  }
-  if (pulseCal > Y0 && pulseCal < Y1 )
+  else if (total >= Y0 && total < (Y0 + Y1))
   {
     A = (Y1 - Y0) / (X1 - X0);
     B = Y0 - (A * X0);
-    C = (pulseCal - B) / A;
+    C = (total  - B) / A;
   }
-
-  if (pulseCal > Y1 && pulseCal < Y2 )
+  else if (total >= (Y0 + Y1) && total < (Y2 + Y1 + Y0))
   {
     A = (Y2 - Y1) / (X2 - X1);
     B = Y1 - (A * X1);
-    C = (pulseCal - B) / A;
+    C = (total  - B) / A;
   }
-  if (pulseCal > Y2)
+  else if (total >= (Y2 + Y1 + Y0))
   {
     A = (Y3 - Y2) / (X3 - X2);
     B = Y2 - (A * X2);
-    C = (pulseCal - B) / A;
+    C = (total - B) / A;
   }
 
-  EC = (C / (1 + alphaLTC * (temp - 25.00)));
+  EC = (C / (1 + alphaLTC * (Temp - 25.00)));
+
+  Serial.print("E.C. ");
+  Serial.print(EC, 2);
+  Serial.print("  t ");
+  Serial.print(Temp);
+  Serial.println(" *C");
+  Serial.println("");
 }
 
-void onPulse() // EC pulse counter
+void calECprobe() // calibration E.C. probe
 {
-  pulseCount++;
-}
-
-void Search_sensors() // search ds18b20 temperature sensor
-{
-  address[8];
-
-  onewire.reset_search();
-  while (onewire.search(address))
+  switch (incomingByte)
   {
-    if (address[0] != 0x28)
-      continue;
+    case 48: // key "0"
+      Serial.print("Cal. 0,00 uS ...");
+      Y0 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      break;
+
+    case 49: // key "1"
+      Serial.print("Cal. 2,00 uS ...");
+      Y1 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      break;
+
+    case 50: // key "2"
+      Serial.print("Cal. 12,88 uS ...");
+      Y2 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      break;
+
+    case 51: // key "3"
+      Serial.print("Cal. 80,000 uS ...");
+      Y3 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      break;
+
+    case 53: // key "5"
+      Serial.print("Reset uS ...");
+      Y0 = 235;
+      Y1 = 1340;
+      Y2 = 5150;
+      Y3 = 16800;
+      break;
   }
-}
-void cal_sensors()
-{
-  Serial.println(" ");
-
-  if (incomingByte == 53) // press key "5"
-  {
-    Reset_EC();
-  }
-  else if (incomingByte == 48) // press key "0"
-  {
-    ECcal = 1;
-    Serial.print("Cal. 0,00 uS ...");
-    Y0 = pulseCal;
-    int eeAddress = 0;
-    EEPROM.put(eeAddress, Y0);
-    Serial.println(" complete");
-    ECcal = 0;
-  }
-
-  else if (incomingByte == 49) // press key "1"
-  {
-    ECcal = 1;
-    Serial.print("Cal. 2,00 uS ...");
-    Y1 = pulseCal / (1 + alphaLTC * (temp - 25.00));
-    ECread();
-    while (EC > X1)
-    {
-      Y1++;
-      ECread();
-    }
-    int eeAddress = 0 + sizeof(long);
-    EEPROM.put(eeAddress, Y1);
-    Serial.println(" complete");
-    ECcal = 0;
-  }
-
-  else if (incomingByte == 50) // press key "2"
-  {
-    ECcal = 1;
-    Serial.print("Cal. 12,88 uS ...");
-    Y2 = pulseCal / (1 + alphaLTC * (temp - 25.00));
-    ECread();
-    while (EC > X2)
-    {
-      Y2++;
-      ECread();
-    }
-    int eeAddress = 0 + (sizeof(long) * 2);
-    EEPROM.put(eeAddress, Y2);
-    Serial.println(" complete");
-    ECcal = 0;
-  }
-
-  else if (incomingByte == 51) // press key "3"
-  {
-    ECcal = 1;
-    Serial.print("Cal. 80,00 uS ...");
-    Y3 = pulseCal / (1 + alphaLTC * (temp - 25.00));
-    ECread();
-    while (EC > X3)
-    {
-      Y3++;
-      ECread();
-    }
-    int eeAddress = 0 + sizeof(long) * 3;
-    EEPROM.put(eeAddress, Y3);
-    Serial.println(" complete");
-    ECcal = 0;
-  }
-
-}
-
-void Reset_EC()
-{
-  ECcal = 1;
-  int eeAddress = 0;
-
-  Serial.print("Reset EC ...");
-
-  MyObject customVar = {
-    230,
-    1245,
-    5282,
-    17255
-  };
-
-  EEPROM.put(eeAddress, customVar);
-
-  EEPROM.get(eeAddress, customVar);
-
-  Y0 = (customVar.Y0);
-  Y1 = (customVar.Y1);
-  Y2 = (customVar.Y2);
-  Y3 = (customVar.Y3);
   Serial.println(" complete");
-  ECcal = 0;
+  SaveSet();
 }
-
 
 void loop()
 {
-
-  if (ECcal == 0)
+  if (Serial.available() > 0)
   {
-    if (millis() - Time >= Interval)
-    {
-      Time = millis();
-
-      sequence ++;
-      if (sequence > 1)
-        sequence = 0;
-
-
-      if (sequence == 0)
-      {
-        pulseCount = 0; //reset the pulse counter
-        attachInterrupt(0, onPulse, RISING); //attach an interrupt counter to interrupt pin 1 (digital pin #3) -- the only other possible pin on the 328p is interrupt pin #0 (digital pin #2)
-      }
-
-      if (sequence == 1)
-      {
-        detachInterrupt(0);
-        pulseCal = pulseCount;
-        temp_read();
-        ECread();
-
-        // Prints measurements on Serial Monitor
-        Serial.println("  ");
-        Serial.print("t ");
-        Serial.print(temp);
-        Serial.print(F(" *C"));
-        Serial.print("    E.C. ");
-        Serial.print(EC); // uS/cm
-        Serial.print("    pulses/sec = ");
-        Serial.print(pulseCal);
-        Serial.print("    C = ");
-        Serial.println(C); // Conductivity without temperature compensation
-      }
-    }
-
-    if (Serial.available() > 0) //  function of calibration E.C.
-    {
-      incomingByte = Serial.read();
-      cal_sensors();
-    }
+    incomingByte = Serial.read();
+    calECprobe();
   }
+  timer.run();
 }
-

@@ -1,14 +1,13 @@
-##CyberPlant E.C. Reader
+##CyberPlant E.C. Counter v1.1
 
-The E.C. Reader based on the precision timer NE555DR. The Conductivity circuit provides the AC excitation. The output signal then is a square wave. Its frequency varies from 240 Hz when the sensor is bone dry, up to 17255 Hz at the E.C. 80.00 μS/cm. This output can measured using the Interrupts. For temperature compensation can used Waterproof DS18B20 temperature sensor. The E.C. Reader provides high accuracy readings of conductivity measurement.
+The E.C. Counter v1.1 based on the precision timer NE555DR. The Conductivity circuit provides the AC excitation. The output signal then is a square wave. Its frequency varies from 240 Hz when the sensor is bone dry, up to 16000 Hz at the E.C. 80.000 μS/cm. This output can measured using the Interrupts. For temperature compensation can used Waterproof DS18B20 temperature sensor. The E.C. Reader provides high accuracy readings of conductivity measurement.
 
 ##Features:
 
 - Power Supply: 5V - 15V
-- Measuring Range EC: 0 - 80.000 uS
+- Measuring Range EC: 0 - 160.000 μS/cm
 - Accurate EC readings: ±2%
-- Temp sensor support: ds18b20
-- Accurate temperature readings:  ±0.3°C
+- Support Temp sensor DS18B20
 - BNC Connector
 - Grove Connector
 - PCB Size : 36.8 mm×20.3 mm
@@ -26,7 +25,7 @@ The sample code uses the sensor calibration feature with one touch.
 ![EC Reader](http://image.cyber-plant.com/var/resizes/ECSerial.jpg?m=1449125597)
 
 ## Isolated sensor
-If you need to isolate the EC Reader can use the [I2Ciso](https://github.com/cyberplantru/I2C-iso). When reading the pH and Conductivity together, recommended to isolate the pH circuit and leave the E.C. unisolated.
+If you need to isolate the E.C. Counter can use the [I2Ciso](https://github.com/cyberplantru/I2C-iso). When reading the pH and Conductivity together, recommended to isolate the pH circuit and leave the E.C. unisolated.
 
 ![EC Reader](http://image.cyber-plant.com/var/albums/ECReaderIso.jpg?m=1449112044)
 
