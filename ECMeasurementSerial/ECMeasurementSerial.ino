@@ -1,9 +1,9 @@
 /*
-  Example code for the E.C. Counter v1.1
+  Example code for the E.C. mini v3.0
   http://www.cyber-plant.com
   by CyberPlant LLC, 03 December 2015
   This example code is in the public domain.
-  upd. 15 February 2016
+  upd. 15 March 2016
 */
 #include <SimpleTimer.h>
 #include <EEPROM.h>
@@ -37,8 +37,8 @@ SimpleTimer timer;
 
 void setup()
 {
-  Serial.begin(115200);
-  pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
+  Serial.begin(9600);
+  //pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
   Serial.println("Calibrate commands:");
   Serial.println("E.C. :");
   Serial.println("      Cal. 0,000 uS ---- 0");
