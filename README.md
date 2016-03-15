@@ -28,7 +28,7 @@ The sample code uses the sensor calibration feature with one touch.
 ![EC Reader](http://image.cyber-plant.com/var/resizes/ECSerial.jpg?m=1449125597)
 
 ## Isolated sensor
-If you need to isolate the E.C. Counter can use the [I2Ciso](https://github.com/cyberplantru/I2C-iso). When reading the pH and Conductivity together, recommended to isolate the pH circuit and leave the E.C. unisolated.
+If you need to isolate the E.C. Mini can use the [I2Ciso](https://github.com/cyberplantru/I2C-iso). When reading the pH and Conductivity together, recommended to isolate the pH circuit and leave the E.C. unisolated.
 
 ![EC Reader](http://image.cyber-plant.com/var/resizes/pH-EC-meter-kit_3.jpg?m=1458063353)
 
