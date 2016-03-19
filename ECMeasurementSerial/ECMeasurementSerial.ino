@@ -38,7 +38,7 @@ SimpleTimer timer;
 void setup()
 {
   Serial.begin(9600);
-  //pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
+  pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
   Serial.println("Calibrate commands:");
   Serial.println("E.C. :");
   Serial.println("      Cal. 0,000 uS ---- 0");

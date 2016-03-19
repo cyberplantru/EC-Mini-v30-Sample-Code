@@ -1,4 +1,4 @@
-![EC Reader](http://image.cyber-plant.com/var/albums/miniSeriese.jpg?m=1458062565)
+![EC Reader](http://image.cyber-plant.com/var/resizes/CyberPlantMiniSeries-01.jpg?m=1458131397)
 ##CyberPlant E.C. mini v3.0
 
 The E.C. mini v3.0 based on the precision timer NE555DR. The Conductivity circuit provides the AC excitation. The output signal then is a square wave. Its frequency varies from 240 Hz when the sensor is bone dry, up to 16000 Hz at the E.C. 80.000 μS/cm. This output can measured using the Interrupts. For temperature compensation can used Waterproof DS18B20 temperature sensor. The E.C. Reader provides high accuracy readings of conductivity measurement.
