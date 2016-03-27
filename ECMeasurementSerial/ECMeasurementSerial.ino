@@ -1,9 +1,10 @@
 /*
-  Example code for the E.C. mini v3.0
+  Example code for the E.C. Mini v3.0
+  Works in Arduino IDE 1.6.8
   http://www.cyber-plant.com
   by CyberPlant LLC, 03 December 2015
   This example code is in the public domain.
-  upd. 15 March 2016
+  upd. 27.03.2016
 */
 #include <SimpleTimer.h>
 #include <EEPROM.h>
@@ -13,19 +14,18 @@
 #define alphaLTC 0.022 // The linear temperature coefficient
 #define ONE_WIRE_BUS 3 // Connect DS18B20 temp sensor to pin D3
 
-#define X0 0.0 //calibration buffers. You can use any other buffers
+#define X0 0.0 // calibration buffers. You can use any other buffers
 #define X1 2.0
 #define X2 12.88
 #define X3 80.0
+
 unsigned int Y0; // calibration value
 unsigned int Y1;
 unsigned int Y2;
 unsigned int Y3;
 
-float EC;
-float Temp;
+float EC, Temp;
 float TempManual = 25.0;
-
 volatile bool counting;
 volatile unsigned long events;
 unsigned long total;
@@ -39,15 +39,17 @@ void setup()
 {
   Serial.begin(9600);
   pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
-  Serial.println("Calibrate commands:");
-  Serial.println("E.C. :");
-  Serial.println("      Cal. 0,000 uS ---- 0");
-  Serial.println("      Cal. 2,000 uS ---- 1");
-  Serial.println("      Cal. 12,880 uS --- 2");
-  Serial.println("      Cal. 80,000 uS --- 3");
-  Serial.println("      Reset E.C. ------ 5");
-  Serial.println("  ");
   ReadEE();
+  Serial.println("E.C. Mini v3.0");
+  Serial.println("\n\      Cal. 0,000 uS ---> 0");
+  Serial.println("      Cal. 2,000 uS ---> 1");
+  Serial.println("      Cal. 12,880 uS --> 2");
+  Serial.println("      Cal. 80,000 uS --> 3");
+  Serial.println("      Reset E.C. ------> 5");
+  for (int i = 0; i < 14; i++) {
+    Serial.print(". ");
+    delay(100);
+  }
   timer.setInterval(1000L, TotalEvents);
   attachInterrupt (0, eventISR, FALLING);
 }
@@ -59,8 +61,7 @@ struct MyObject {
   unsigned int Y3;
 };
 
-void ReadEE()
-{
+void ReadEE() {
   int eeAddress = 0;
   MyObject customVar;
   EEPROM.get(eeAddress, customVar);
@@ -70,8 +71,7 @@ void ReadEE()
   Y3 = (customVar.Y3);
 }
 
-void SaveSet()
-{
+void SaveSet() {
   int eeAddress = 0;
   MyObject customVar = {
     Y0,
@@ -82,20 +82,17 @@ void SaveSet()
   EEPROM.put(eeAddress, customVar);
 }
 
-void eventISR ()
-{
+void eventISR () {
   if (counting == true)
     events++;
 }
 
-void TotalEvents()
-{
+void TotalEvents() {
   if (counting == true) {
     counting = false;
     total = events;
     TempRead();
-  }
-  else if (counting == false) {
+  } else if (counting == false) {
     noInterrupts ();
     events = 0;
     EIFR = bit (INTF0);
@@ -104,8 +101,7 @@ void TotalEvents()
   }
 }
 
-void TempRead()
-{
+void TempRead() {
   sensors.requestTemperatures();
   Temp = sensors.getTempCByIndex(0);
   if (-20 > Temp || Temp > 200) {
@@ -114,8 +110,7 @@ void TempRead()
   ECcalculate();
 }
 
-void ECcalculate()
-{
+void ECcalculate() {
   float A;
   float B;
   float C;
@@ -143,12 +138,13 @@ void ECcalculate()
 
   EC = (C / (1 + alphaLTC * (Temp - 25.00)));
 
-  Serial.print("E.C. ");
+  Serial.print("\n\ t ");
+  Serial.print(Temp, 1);
+  Serial.print("*C ");
+  Serial.print("  E.C. ");
   Serial.print(EC, 2);
-  Serial.print("  t ");
-  Serial.print(Temp);
-  Serial.println(" *C");
-  Serial.println("");
+  Serial.print("   PPM ");
+  Serial.println(EC * 500, 0);
 }
 
 void calECprobe() // calibration E.C. probe
@@ -157,22 +153,22 @@ void calECprobe() // calibration E.C. probe
   {
     case 48: // key "0"
       Serial.print("Cal. 0,00 uS ...");
-      Y0 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      Y0 = total;
       break;
 
     case 49: // key "1"
       Serial.print("Cal. 2,00 uS ...");
-      Y1 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      Y1 = total / (1 + alphaLTC * (Temp - 25.00));
       break;
 
     case 50: // key "2"
       Serial.print("Cal. 12,88 uS ...");
-      Y2 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      Y2 = total / (1 + alphaLTC * (Temp - 25.00));
       break;
 
     case 51: // key "3"
       Serial.print("Cal. 80,000 uS ...");
-      Y3 = total / ((1 - ((Temp - 25.00) / 350)) + alphaLTC * (Temp - 25.00));
+      Y3 = total / (1 + alphaLTC * (Temp - 25.00));
       break;
 
     case 53: // key "5"
@@ -189,10 +185,10 @@ void calECprobe() // calibration E.C. probe
 
 void loop()
 {
-  if (Serial.available() > 0)
-  {
+  if (Serial.available() > 0) {
     incomingByte = Serial.read();
     calECprobe();
   }
+
   timer.run();
 }
