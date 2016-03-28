@@ -1,3 +1,6 @@
+![CyberPlant_Mini](http://image.cyber-plant.com/var/resizes/CyberPlantMiniSeriesC.jpg?m=1459175705)
+
+##CyberPlant EC Mini v3.0
 The EC mini v3.0 based on the precision timer NE555DR. The Conductivity circuit provides the AC excitation. The output signal then is a square wave. Its frequency varies from 240 Hz when probe is dry and up to 8950 Hz at the E.C. 80.00 mS/cm. This output signal can be measured using the interrupts. For temperature compensation can used Waterproof DS18B20 temperature sensor. The circuit provides high accuracy readings of Conductivity measurement. Can be used with any conductive probe with BNC connector
 Use E.C. Mini as Shield with Arduino Pro Mini for transmit the data through UART to any device
 ###Features:
