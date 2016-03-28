@@ -41,10 +41,10 @@ void setup()
   pinMode(2, INPUT_PULLUP); //  An internal 20K-ohm resistor is pulled to 5V. If you use hardware pull-up delete this
   ReadEE();
   Serial.println("E.C. Mini v3.0");
-  Serial.println("\n\      Cal. 0,000 uS ---> 0");
-  Serial.println("      Cal. 2,000 uS ---> 1");
-  Serial.println("      Cal. 12,880 uS --> 2");
-  Serial.println("      Cal. 80,000 uS --> 3");
+  Serial.println("\n\      Cal. 0.00mS/cm ---> 0");
+  Serial.println("      Cal. 2.00mS/cm ---> 1");
+  Serial.println("      Cal. 12.88mS/cm --> 2");
+  Serial.println("      Cal. 80.00mS/cm --> 3");
   Serial.println("      Reset E.C. ------> 5");
   for (int i = 0; i < 14; i++) {
     Serial.print(". ");
@@ -143,8 +143,8 @@ void ECcalculate() {
   Serial.print("*C ");
   Serial.print("  E.C. ");
   Serial.print(EC, 2);
-  Serial.print("   PPM ");
-  Serial.println(EC * 500, 0);
+  Serial.print("   total ");
+  Serial.println(total);
 }
 
 void calECprobe() // calibration E.C. probe
@@ -175,7 +175,7 @@ void calECprobe() // calibration E.C. probe
       Serial.print("Reset uS ...");
       Y0 = 235;
       Y1 = 1340;
-      Y2 = 5150;
+      Y2 = 4486;
       Y3 = 16800;
       break;
   }
