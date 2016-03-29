@@ -11,13 +11,13 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define alphaLTC 0.022 // The linear temperature coefficient
+#define alphaLTC 0.022 // Temperature correction coefficient
 #define ONE_WIRE_BUS 3 // Connect DS18B20 temp sensor to pin D3
 
-#define X0 0.00  //  The conductivity probe is dry
-#define X1 2.00  //  Value of calibration buffers. You can use any other buffers
-#define X2 12.88
-#define X3 80.00
+#define X0 0.00   //  The conductivity probe is dry
+#define X1 2.00   //  Value of calibration buffers
+#define X2 12.88  //  You can use any other buffers
+#define X3 80.00  //  and their number
 
 unsigned int Y0, Y1, Y2, Y3;  //  The variables of calibration buffer values
 float EC, Temp;
@@ -112,6 +112,7 @@ void TempRead() {  //  Get temperature value from DS18B20
 }
 
 void ECcalculate() {  //  Calculate the measurement
+  
   float A;
   float B;
   float C;
@@ -134,18 +135,19 @@ void ECcalculate() {  //  Calculate the measurement
     C = (total - B) / A;
   }
 
-  EC = (C / (1 + alphaLTC * (Temp - 25.00)));
+  EC = (C / (1 + alphaLTC * (Temp - 25.00))); //  temperature compensation
 
-  Serial.print("\n\ t ");
+  Serial.println();
+  Serial.print("t ");
   Serial.print(Temp, 1);
   Serial.print("*C ");
   Serial.print("  E.C. ");
   Serial.print(EC, 2);
   Serial.print("   PPM ");
-  Serial.print(EC * 500, 0);
-  Serial.print("   Frequency ");
-  Serial.print(total);
-  Serial.println(" Hz ");
+  Serial.println(EC * 500, 0);
+  //Serial.print("   Frequency ");
+  //Serial.print(total);
+  //Serial.println(" Hz ");
 }
 
 void calECprobe() // calibration E.C. probe
@@ -179,7 +181,7 @@ void calECprobe() // calibration E.C. probe
     case 53: // key "5"
       Serial.print("Reset ");
       Y0 = 230;
-      Y1 = 1300;
+      Y1 = 1340;
       Y2 = 4140;
       Y3 = 8945;
       SaveSet();
