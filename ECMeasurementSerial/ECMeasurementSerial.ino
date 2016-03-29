@@ -46,6 +46,7 @@ void setup()
     Serial.print(". ");
     delay(100);
   }
+  Serial.println();
   timer.setInterval(1000L, TotalEvents);
   attachInterrupt (0, eventISR, FALLING);
 }
@@ -76,11 +77,7 @@ void SaveSet() {  //  Save calibration values to EEPROM
     Y3
   };
   EEPROM.put(eeAddress, customVar);
-  for (int i = 0; i < 8; i++) {
-    Serial.print(". ");
-    delay(100);
-  }
-  Serial.println("complete");
+  Serial.println(". . . complete");
 }
 
 void eventISR () {  //  Get the value of frequency from conduction circuit
@@ -88,7 +85,7 @@ void eventISR () {  //  Get the value of frequency from conduction circuit
     events++;
 }
 
-void TotalEvents() {  //  Turn on/off counter of frequency
+void TotalEvents() {  //  Turn on/off counter of interrupts
   if (counting == true) {
     counting = false;
     total = events;
@@ -112,7 +109,7 @@ void TempRead() {  //  Get temperature value from DS18B20
 }
 
 void ECcalculate() {  //  Calculate the measurement
-  
+
   float A;
   float B;
   float C;
@@ -137,49 +134,50 @@ void ECcalculate() {  //  Calculate the measurement
 
   EC = (C / (1 + alphaLTC * (Temp - 25.00))); //  temperature compensation
 
-  Serial.println();
-  Serial.print("t ");
+  Serial.println(' ');
+  Serial.print("  t ");
   Serial.print(Temp, 1);
   Serial.print("*C ");
-  Serial.print("  E.C. ");
+  Serial.print("  EC ");
   Serial.print(EC, 2);
   Serial.print("   PPM ");
   Serial.println(EC * 500, 0);
   //Serial.print("   Frequency ");
   //Serial.print(total);
-  //Serial.println(" Hz ");
+  //Serial.println(" Hz");
 }
 
-void calECprobe() // calibration E.C. probe
+void calECprobe() // calibration probe
 {
+  Serial.println(' ');
   switch (incomingByte)
   {
     case 48: // key "0"
-      Serial.print("Cal. 0.00 mS/cm ...");  //  The conductivity probe is dry
+      Serial.print("  Cal. 0.00 mS/cm ");  //  The conductivity probe is dry
       Y0 = total;
       SaveSet();
       break;
 
     case 49: // key "1"
-      Serial.print("Cal. 2.00 mS/cm ...");
+      Serial.print("  Cal. 2.00 mS/cm ");
       Y1 = total / (1 + alphaLTC * (Temp - 25.00));
       SaveSet();
       break;
 
     case 50: // key "2"
-      Serial.print("Cal. 12.88 mS/cm ...");
+      Serial.print("  Cal. 12.88 mS/cm ");
       Y2 = total / (1 + alphaLTC * (Temp - 25.00));
       SaveSet();
       break;
 
     case 51: // key "3"
-      Serial.print("Cal. 80.00 mS/cm ...");
+      Serial.print("  Cal. 80.00 mS/cm ");
       Y3 = total / (1 + alphaLTC * (Temp - 25.00));
       SaveSet();
       break;
 
     case 53: // key "5"
-      Serial.print("Reset ");
+      Serial.print("  Reset ");
       Y0 = 230;
       Y1 = 1340;
       Y2 = 4140;
