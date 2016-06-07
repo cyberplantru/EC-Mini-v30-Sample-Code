@@ -141,10 +141,10 @@ void ECcalculate() {  //  Calculate the measurement
   Serial.print("  EC ");
   Serial.print(EC, 2);
   Serial.print("   PPM ");
-  Serial.println(EC * 500, 0);
-  //Serial.print("   Frequency ");
-  //Serial.print(total);
-  //Serial.println(" Hz");
+  Serial.print(EC * 500, 0);
+  Serial.print("   Frequency ");
+  Serial.print(total);
+  Serial.println(" Hz");
 }
 
 void calECprobe() // calibration probe
@@ -181,7 +181,7 @@ void calECprobe() // calibration probe
       Y0 = 230;
       Y1 = 1340;
       Y2 = 4140;
-      Y3 = 8945;
+      Y3 = 7350;
       SaveSet();
       break;
   }
