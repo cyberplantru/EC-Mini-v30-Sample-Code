@@ -31,14 +31,18 @@ If you need to isolate the E.C. Mini can use the [I2Ciso](https://github.com/cyb
 
 ![EC Reader](http://image.cyber-plant.com/var/resizes/pH-EC-meter-kit_3.jpg?m=1458063353)
 
-
 ----------
 
 ### Package include:
 
 -     1 x E.C. Mini v3.0
--     2 x 10 PLS connectors
+-     2 x 12 PLS connectors
 -     1 x 4 angle PLS
 -     2 x 4k7 resistors
 
 ----------
+
+### Documentation:
+
+- [Hardware](https://github.com/cyberplantru/EC-mini-v31-hardware)
+- [link to CyberPlant](http://www.cyber-plant.com).
